@@ -79,10 +79,10 @@ void erase(int board[225], Snake *s)
 void update_game(int board[255], Snake *s)
 {
     // Clear tail
-    ListNode old_tail;
+    ListNode *old_tail;
     memcpy(old_tail, s->end, sizeof(ListNode));
-    s->end = s->end->next;
-    s->end->prev = NULL;
+    s->end->next->prev = NULL;
+    free(s->end);
 
     // Move head
     ListNode *new = malloc(sizeof(ListNode));
