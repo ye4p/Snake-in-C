@@ -84,7 +84,7 @@ void update_game(int board[255], Snake *s)
     s->end->next->prev = NULL;
     free(s->end);
 
-    // Move head
+        // Move head
     ListNode *new = malloc(sizeof(ListNode));
     new->next = NULL;
     new->prev = s->beg;
