@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <windows.h>
 
+#define HEIGHT 15
+#define WIDTH 15
+#define TOTAL_SQUARES (HEIGHT * WIDTH)
+
 // clang-format off
 enum direction
 {
@@ -14,51 +18,73 @@ typedef struct Coords
     int y;
 } Coords;
 
-typedef struct ListNode ListNode;
+typedef struct Node Node;
 
 typedef struct Snake
 {
     int dir;
-    ListNode *beg;
-    ListNode *end;
+    Node *beg;
+    Node *end;
 } Snake;
 
 // For a snake body, use a doubly linked list
-typedef struct ListNode
+typedef struct Node
 {
-    ListNode *prev;
+    Node *prev;
     // Coords c;
     int c[2];
-    ListNode *next;
-} ListNode;
+    Node *next;
+} Node;
 
-void run(int board[225], Snake *s);
+void run(int board[TOTAL_SQUARES], Snake *s);
 
-void handle_input();
+void handle_input(Snake *s);
 
-void draw(int board[225], Snake *s);
-void erase(int board[225], Snake *s);
+void draw(int board[TOTAL_SQUARES], Snake *s);
+void erase(int board[TOTAL_SQUARES], Snake *s);
 void update_game(int board[255], Snake *s);
 
-void render(int board[225]);
-void wait(int time); // in ms
-void start_game(int board[225], Snake *s);
+int is_valid(int board[255], Snake *s);
 
-void run(int board[225], Snake *s)
+void render(int board[TOTAL_SQUARES]);
+void wait(int time); // in ms
+void start_game(int board[TOTAL_SQUARES], Snake *s);
+
+void run(int board[TOTAL_SQUARES], Snake *s)
 {
-    handle_input();
+    handle_input(s);
     update_game(board, s);
     render(board);
     wait(200);
 }
 
-void handle_input()
+void handle_input(Snake *s)
 {
+    if (!_kbhit())
+        return;
+    char c = _getch();
+    switch (c)
+    {
+    case 'w':
+        s->dir = up;
+        break;
+    case 'a':
+        s->dir = left;
+        break;
+    case 's':
+        s->dir = down;
+        break;
+    case 'd':
+        s->dir = right;
+        break;
+    default:
+        break;
+    }
 }
 
-void draw(int board[225], Snake *s)
+void draw(int board[TOTAL_SQUARES], Snake *s)
 {
-    ListNode *cur = s->beg;
+    Node *cur = s->beg;
     while (cur != NULL)
     {
         board[cur->c[0] + cur->c[1] * 15] = 1;
@@ -66,9 +92,9 @@ void draw(int board[225], Snake *s)
     }
 }
 
-void erase(int board[225], Snake *s)
+void erase(int board[TOTAL_SQUARES], Snake *s)
 {
-    ListNode *cur = s->beg;
+    Node *cur = s->beg;
     while (cur != NULL)
     {
         board[cur->c[0] + cur->c[1] * 15] = 0;
@@ -79,13 +105,13 @@ void erase(int board[225], Snake *s)
 void update_game(int board[255], Snake *s)
 {
     // Clear tail
-    ListNode *old_tail;
-    memcpy(old_tail, s->end, sizeof(ListNode));
+    Node *old_tail;
+    memcpy(old_tail, s->end, sizeof(Node));
     s->end->next->prev = NULL;
     free(s->end);
 
-        // Move head
-    ListNode *new = malloc(sizeof(ListNode));
+    // Move head
+    Node *new = malloc(sizeof(Node));
     new->next = NULL;
     new->prev = s->beg;
 
@@ -98,10 +124,13 @@ void update_game(int board[255], Snake *s)
         break;
     case up:
         ++new_coords[1];
+        break;
     case right:
         ++new_coords[0];
+        break;
     case left:
         --new_coords[0];
+        break;
     default:
         printf("Invalid direction %i\n", s->dir);
         break;
@@ -114,16 +143,39 @@ void update_game(int board[255], Snake *s)
     s->beg = s->beg->next;
 }
 
-void render(int board[225])
+int is_valid(int board[255], Snake *s)
 {
-    for (int y = 0; y < 15; y++)
+    Node *p = s->beg;
+    while (p)
     {
-        for (int x = 0; x < 15; x++)
+        // check if OOB
+        if (p->c[0] < 0 || p->c[0] >= WIDTH || p->c[1] < 0 || p->c[1] >= HEIGHT)
+            return 0;
+
+        // check if hits itself
+        int *arr = calloc(HEIGHT * WIDTH, sizeof(int));
+        int square = p->c[0] + WIDTH * p->c[1];
+        if (arr[square]++)
+            return 0;
+
+        p = p->next;
+    }
+    return 1;
+}
+
+void render(int board[TOTAL_SQUARES])
+{
+    char *square = "[]";
+    char *space = "  ";
+    char *apple = "@@";
+    for (int y = 0; y < HEIGHT; y++)
+    {
+        for (int x = 0; x < WIDTH; x++)
         {
-            if (board[x + 15 * y])
-                printf("[]");
+            if (board[x + WIDTH * y])
+                printf(square);
             else
-                printf("  ");
+                printf(space);
         }
         printf("\n");
     }
@@ -134,7 +186,7 @@ void wait(int time)
     Sleep(time);
 }
 
-void start_game(int board[225], Snake *s)
+void start_game(int board[TOTAL_SQUARES], Snake *s)
 {
     s->dir = right;
 
@@ -152,9 +204,10 @@ void start_game(int board[225], Snake *s)
 
 int main()
 {
-    int board[225] = {0};
-    ListNode head;
-    ListNode tail;
+
+    int board[HEIGHT * WIDTH] = {0};
+    Node head;
+    Node tail;
     Snake s = {.beg = &head, .end = &tail};
 
     start_game(board, &s);
