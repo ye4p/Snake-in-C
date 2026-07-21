@@ -145,21 +145,28 @@ void update_game(int board[255], Snake *s)
 
 int is_valid(int board[255], Snake *s)
 {
+    int *arr = calloc(HEIGHT * WIDTH, sizeof(int));
     Node *p = s->beg;
     while (p)
     {
         // check if OOB
         if (p->c[0] < 0 || p->c[0] >= WIDTH || p->c[1] < 0 || p->c[1] >= HEIGHT)
+        {
+            free(arr);
             return 0;
+        }
 
         // check if hits itself
-        int *arr = calloc(HEIGHT * WIDTH, sizeof(int));
         int square = p->c[0] + WIDTH * p->c[1];
         if (arr[square]++)
+        {
+            free(arr);
             return 0;
+        }
 
         p = p->next;
     }
+    free(arr);
     return 1;
 }
 
