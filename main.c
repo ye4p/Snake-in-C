@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <windows.h>
+#include <time.h>
+#include <conio.h>
 
 #define HEIGHT 15
 #define WIDTH 15
@@ -9,6 +11,11 @@
 enum direction
 {
     left, up, right, down
+};
+
+enum field 
+{
+    empty, snake, apple
 };
 // clang-format on
 
@@ -42,6 +49,8 @@ void handle_input(Snake *s);
 
 void draw(int board[TOTAL_SQUARES], Snake *s);
 void erase(int board[TOTAL_SQUARES], Snake *s);
+
+void clear_tail(Snake *s);
 void update_game(int board[255], Snake *s);
 
 int is_valid(int board[255], Snake *s);
@@ -49,6 +58,9 @@ int is_valid(int board[255], Snake *s);
 void render(int board[TOTAL_SQUARES]);
 void wait(int time); // in ms
 void start_game(int board[TOTAL_SQUARES], Snake *s);
+void end_game(Snake *s);
+
+void place_apple(int board[TOTAL_SQUARES], Snake *s);
 
 void run(int board[TOTAL_SQUARES], Snake *s)
 {
@@ -87,7 +99,7 @@ void draw(int board[TOTAL_SQUARES], Snake *s)
     Node *cur = s->beg;
     while (cur != NULL)
     {
-        board[cur->c[0] + cur->c[1] * 15] = 1;
+        board[cur->c[0] + cur->c[1] * WIDTH] = snake;
         cur = cur->next;
     }
 }
@@ -97,18 +109,21 @@ void erase(int board[TOTAL_SQUARES], Snake *s)
     Node *cur = s->beg;
     while (cur != NULL)
     {
-        board[cur->c[0] + cur->c[1] * 15] = 0;
+        board[cur->c[0] + cur->c[1] * WIDTH] = empty;
         cur = cur->next;
     }
 }
 
-void update_game(int board[255], Snake *s)
+void clear_tail(Snake *s)
 {
-    // Clear tail
     Node *old_tail;
     memcpy(old_tail, s->end, sizeof(Node));
     s->end->next->prev = NULL;
     free(s->end);
+}
+
+void update_game(int board[255], Snake *s)
+{
 
     // Move head
     Node *new = malloc(sizeof(Node));
@@ -141,6 +156,10 @@ void update_game(int board[255], Snake *s)
 
     s->beg->next = new;
     s->beg = s->beg->next;
+
+    // Clearing tail if no apple was consumed
+    if (board[new_coords[0] + WIDTH * new_coords[1]] != apple)
+        clear_tail(s);
 }
 
 int is_valid(int board[255], Snake *s)
@@ -172,17 +191,19 @@ int is_valid(int board[255], Snake *s)
 
 void render(int board[TOTAL_SQUARES])
 {
-    char *square = "[]";
-    char *space = "  ";
-    char *apple = "@@";
+    char *square_str = "[]";
+    char *space_str = "  ";
+    char *apple_str = "@@";
     for (int y = 0; y < HEIGHT; y++)
     {
         for (int x = 0; x < WIDTH; x++)
         {
-            if (board[x + WIDTH * y])
-                printf(square);
+            if (board[x + WIDTH * y] == snake)
+                printf(square_str);
+            else if (board[x + WIDTH * y] == apple)
+                printf(apple_str);
             else
-                printf(space);
+                printf(space_str);
         }
         printf("\n");
     }
@@ -209,13 +230,35 @@ void start_game(int board[TOTAL_SQUARES], Snake *s)
     s->beg->next = s->end;
 }
 
+void end_game(Snake *s)
+{
+    Node *head = s->beg;
+    while (head)
+    {
+        Node *next = head->next;
+        free(head);
+        head = next;
+    }
+}
+
+void place_apple(int board[TOTAL_SQUARES], Snake *s)
+{
+    srand(time(NULL));
+    int random_number = rand() % TOTAL_SQUARES;
+    while (board[random_number] == snake || board[random_number] == apple)
+    {
+        random_number = rand() % TOTAL_SQUARES;
+    }
+    board[random_number] == apple;
+}
+
 int main()
 {
 
     int board[HEIGHT * WIDTH] = {0};
-    Node head;
-    Node tail;
-    Snake s = {.beg = &head, .end = &tail};
+    Node *head = malloc(sizeof(Node));
+    Node *tail = malloc(sizeof(Node));
+    Snake s = {.beg = head, .end = tail};
 
     start_game(board, &s);
     draw(board, &s);
